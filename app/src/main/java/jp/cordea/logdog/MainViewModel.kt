@@ -7,9 +7,7 @@ import androidx.lifecycle.viewModelScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.channels.awaitClose
-import kotlinx.coroutines.flow.callbackFlow
-import kotlinx.coroutines.flow.collect
-import kotlinx.coroutines.flow.flowOn
+import kotlinx.coroutines.flow.*
 import kotlinx.coroutines.launch
 
 @ExperimentalCoroutinesApi
@@ -23,9 +21,12 @@ class MainViewModel @ViewModelInject constructor(
                 val reader = logcat.inputStream.bufferedReader()
                 reader.lineSequence().forEach { send(it) }
                 awaitClose { reader.close() }
-            }.flowOn(Dispatchers.IO).collect {
-                text.value += "\n$it"
             }
+                .takeMap(1000) { it.joinToString("\n") }
+                .flowOn(Dispatchers.IO)
+                .collect {
+                    text.value += "\n$it"
+                }
         }
     }
 
@@ -33,5 +34,17 @@ class MainViewModel @ViewModelInject constructor(
 
     fun onLogAdditionClick() {
         logger.info(MainViewModel::class.java.name, "add")
+    }
+
+    private fun <T> Flow<T>.takeMap(count: Int, mapper: (List<T>) -> T): Flow<T> = flow {
+        val list = mutableListOf<T>()
+        collect { value ->
+            if (list.size < count) {
+                list.add(value)
+            } else {
+                emit(mapper(list))
+                list.clear()
+            }
+        }
     }
 }
