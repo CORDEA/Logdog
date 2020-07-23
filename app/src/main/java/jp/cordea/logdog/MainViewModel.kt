@@ -13,8 +13,9 @@ import kotlinx.coroutines.flow.flowOn
 import kotlinx.coroutines.launch
 
 @ExperimentalCoroutinesApi
-class MainViewModel @ViewModelInject constructor() : ViewModel() {
-
+class MainViewModel @ViewModelInject constructor(
+    private val logger: Logger
+) : ViewModel() {
     init {
         val logcat = Runtime.getRuntime().exec(arrayOf("logcat"))
         viewModelScope.launch {
@@ -31,5 +32,6 @@ class MainViewModel @ViewModelInject constructor() : ViewModel() {
     val text = MutableLiveData("")
 
     fun onLogAdditionClick() {
+        logger.info(MainViewModel::class.java.name, "add")
     }
 }
