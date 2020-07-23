@@ -23,7 +23,7 @@ class MainViewModel @ViewModelInject constructor() : ViewModel() {
                 reader.lineSequence().forEach { send(it) }
                 awaitClose { reader.close() }
             }.flowOn(Dispatchers.IO).collect {
-                text.value = it
+                text.value += "\n$it"
             }
         }
     }
