@@ -1,3 +1,4 @@
 <resources>
     <string name="app_name">Logdog</string>
+    <string name="main_log_addition">Add log</string>
 </resources>
