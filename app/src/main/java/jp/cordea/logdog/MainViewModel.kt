@@ -29,4 +29,7 @@ class MainViewModel @ViewModelInject constructor() : ViewModel() {
     }
 
     val text = MutableLiveData("")
+
+    fun onLogAdditionClick() {
+    }
 }
