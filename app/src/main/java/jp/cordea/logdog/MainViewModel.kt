@@ -31,6 +31,8 @@ class MainViewModel @ViewModelInject constructor(
                 awaitClose { reader.close() }
             }
                 .debounceMap(500.milliseconds) { it.joinToString("\n") }
+                // First log is too large.
+                .drop(1)
                 .flowOn(Dispatchers.IO)
                 .collect {
                     text.value += "\n$it"
