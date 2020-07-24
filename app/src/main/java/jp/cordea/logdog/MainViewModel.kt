@@ -3,6 +3,7 @@ package jp.cordea.logdog
 import androidx.hilt.lifecycle.ViewModelInject
 import androidx.lifecycle.MutableLiveData
 import androidx.lifecycle.ViewModel
+import androidx.lifecycle.map
 import androidx.lifecycle.viewModelScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.ExperimentalCoroutinesApi
@@ -22,6 +23,10 @@ import kotlin.time.milliseconds
 class MainViewModel @ViewModelInject constructor(
     private val logger: Logger
 ) : ViewModel() {
+    companion object {
+        private const val LOG_MAX_LINES = 500
+    }
+
     init {
         val logcat = Runtime.getRuntime().exec(arrayOf("logcat"))
         viewModelScope.launch {
@@ -30,26 +35,26 @@ class MainViewModel @ViewModelInject constructor(
                 reader.lineSequence().forEach { send(it) }
                 awaitClose { reader.close() }
             }
-                .debounceMap(500.milliseconds) { it.joinToString("\n") }
+                .debounceMap(500.milliseconds) { it }
                 // First log is too large.
                 .drop(1)
+                .map { ((texts.value ?: emptyList()) + it).takeLast(LOG_MAX_LINES) }
                 .flowOn(Dispatchers.IO)
-                .collect {
-                    text.value += "\n$it"
-                }
+                .collect { texts.value = it }
         }
     }
 
-    val text = MutableLiveData("")
+    private val texts = MutableLiveData<List<String>>()
+    val text = texts.map { it.joinToString("\n") }
 
     fun onLogAdditionClick() {
         logger.info(MainViewModel::class.java.name, "add")
     }
 
-    private suspend fun <T : Any> Flow<T>.debounceMap(
+    private suspend fun <T : Any, R : Any> Flow<T>.debounceMap(
         timeout: Duration,
-        mapper: (List<T>) -> T
-    ): Flow<T> = flow {
+        mapper: (List<T>) -> R
+    ): Flow<R> = flow {
         coroutineScope {
             val channel = produce {
                 collect { value -> send(value) }
